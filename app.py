@@ -3,6 +3,7 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 import os
+import __main__
 from sklearn.base import BaseEstimator, TransformerMixin
 
 app = FastAPI(
@@ -10,7 +11,7 @@ app = FastAPI(
     description="Servicio Cloud de IA con XGBoost - Proyecto Computacion en la Nube para IA"
 )
 
-# Definición de la clase personalizada requerida por el modelo serializado
+# Definición de la clase personalizada
 class TelcoFeatureEngineering(BaseEstimator, TransformerMixin):
     def fit(self, X, y=None):
         return self
@@ -21,6 +22,9 @@ class TelcoFeatureEngineering(BaseEstimator, TransformerMixin):
         if 'customerID' in X_out.columns:
             X_out = X_out.drop(columns=['customerID'])
         return X_out
+
+# Puente de memoria para enlazar la clase del entorno de Colab con FastAPI
+__main__.TelcoFeatureEngineering = TelcoFeatureEngineering
 
 # Cargar el pipeline de procesamiento e inferencia
 MODEL_PATH = "churn_pipeline_v1.joblib"
@@ -59,7 +63,7 @@ def predecir_abandono(cliente: ClienteData):
     # Transformar el JSON entrante al formato que espera tu pipeline
     df_cliente = pd.DataFrame([cliente.model_dump()])
     
-    # Inferencia (el pipeline ya incluye la limpieza y variables creadas)
+    # Inferencia
     probabilidad = modelo.predict_proba(df_cliente)[0][1]
     diagnostico = "ALERTA: Alto Riesgo de Abandono" if probabilidad >= 0.5 else "Bajo Riesgo (Retenido)"
     
