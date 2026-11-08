@@ -3,11 +3,24 @@ from pydantic import BaseModel
 import joblib
 import pandas as pd
 import os
+from sklearn.base import BaseEstimator, TransformerMixin
 
 app = FastAPI(
     title="API de Predicción de Abandono (Churn)",
     description="Servicio Cloud de IA con XGBoost - Proyecto Computacion en la Nube para IA"
 )
+
+# Definición de la clase personalizada requerida por el modelo serializado
+class TelcoFeatureEngineering(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+    def transform(self, X):
+        X_out = X.copy()
+        X_out['TotalCharges'] = pd.to_numeric(X_out['TotalCharges'], errors='coerce').fillna(0.0)
+        X_out['ChargesRatio'] = X_out['MonthlyCharges'] / (X_out['tenure'] + 1)
+        if 'customerID' in X_out.columns:
+            X_out = X_out.drop(columns=['customerID'])
+        return X_out
 
 # Cargar el pipeline de procesamiento e inferencia
 MODEL_PATH = "churn_pipeline_v1.joblib"
